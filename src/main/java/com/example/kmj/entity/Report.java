@@ -18,6 +18,7 @@ public class Report {
 
     private Long boardId;
     private String reporter;
+    @Column(columnDefinition = "TEXT")
     private String reason;
     private LocalDateTime reportDate = LocalDateTime.now();
 }

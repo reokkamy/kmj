@@ -1,31 +1,58 @@
 package com.example.kmj.service;
 
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.regex.Pattern;
-
 
 @Service
-public class BoardService{
-    public BoardService(Object o) {
+public class BoardService {
+
+    private List<String> badWords;
+
+    public BoardService() {
+        loadBadWords();
     }
 
-    public String filterBadWords(String text) {
-    try {
-        ClassPathResource resource = new ClassPathResource("static/badwords.txt");
-        List<String> badWords = Files.readAllLines(resource.getFile().toPath(), StandardCharsets.UTF_8);
+    // 비속어 필터링: 사용자용 (별표 처리)
+    public String filterBadWordsForUser(String input) {
+        if (badWords == null || badWords.isEmpty()) return input;
 
-        for (String word : badWords) {
-            String masked = "*".repeat(word.length());
-            text = text.replaceAll(Pattern.quote(word), masked);
+        String result = input;
+        for (String bad : badWords) {
+            if (result.contains(bad)) {
+                String stars = "*".repeat(bad.length());
+                result = result.replace(bad, stars); // 포함되기만 하면 치환
+            }
         }
-    } catch (IOException e) {
-        e.printStackTrace();
+        return result;
     }
-    return text;
-}}
+
+    // 비속어 포함 여부 확인 후 관리자용 메시지 반환
+    public String checkBadWordsForAdmin(String input) {
+        if (badWords == null || badWords.isEmpty()) return null;
+
+        for (String bad : badWords) {
+            if (input.contains(bad)) {
+                return bad + "가 포함된 문장입니다";
+            }
+        }
+        return null;
+    }
+
+    // badwords.txt 로드
+    private void loadBadWords() {
+        badWords = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                getClass().getResourceAsStream("/static/badwords.txt")))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                badWords.add(line.trim());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
