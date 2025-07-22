@@ -1,5 +1,6 @@
 package com.example.kmj.controller;
 
+import com.example.kmj.dto.ReportRequestDTO;
 import com.example.kmj.entity.Report;
 import com.example.kmj.repository.ReportRepository;
 import com.example.kmj.service.BoardService;
@@ -7,6 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
@@ -22,29 +24,26 @@ public class ReportController {
     private final BoardService boardService;
 
     @PostMapping("/report/submit")
-    public String submitReport(@RequestParam Long boardId,
-                               @RequestParam String reason,
-                               Principal principal,
-                               RedirectAttributes rttr) {
+    public String submitReport(@ModelAttribute ReportRequestDTO reportRequestDTO, Principal principal, RedirectAttributes rttr) {
 
         String reporter = (principal != null) ? principal.getName() : "anonymous";
 
         // 중복 신고 확인
-        boolean exists = reportRepository.findByBoardIdAndReporter(boardId, reporter).isPresent();
+        boolean exists = reportRepository.findByBoardIdAndReporter(reportRequestDTO.getBoardId(), reporter).isPresent();
         if (exists) {
             rttr.addFlashAttribute("error", "이미 신고한 게시글입니다.");
             return "redirect:/board/list";
         }
 
         // 신고 사유에 비속어 필터링 적용
-        String filteredReason = boardService.filterBadWordsForUser(reason);
+        String filteredReason = boardService.filterBadWordsForUser(reportRequestDTO.getReason());
 
         // 비속어 포함 여부 확인 (관리자 알림용)
-        String adminMessage = boardService.checkBadWordsForAdmin(reason);
+        String adminMessage = boardService.checkBadWordsForAdmin(reportRequestDTO.getReason());
 
         // 신고 정보 저장
         Report report = new Report();
-        report.setBoardId(boardId);
+        report.setBoardId(reportRequestDTO.getBoardId());
         report.setReporter(reporter);
         report.setReason(filteredReason); // 필터링된 사유 저장
 
