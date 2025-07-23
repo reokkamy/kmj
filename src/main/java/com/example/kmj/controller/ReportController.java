@@ -3,6 +3,7 @@ package com.example.kmj.controller;
 import com.example.kmj.dto.ReportRequestDTO;
 import com.example.kmj.entity.Report;
 import com.example.kmj.repository.ReportRepository;
+import com.example.kmj.repository.BoardRepository;
 import com.example.kmj.service.BoardService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -22,6 +23,7 @@ public class ReportController {
 
     private final ReportRepository reportRepository;
     private final BoardService boardService;
+    private final BoardRepository boardRepository;
 
     @PostMapping("/report/submit")
     public String submitReport(@ModelAttribute ReportRequestDTO reportRequestDTO, Principal principal, RedirectAttributes rttr) {
@@ -55,7 +57,19 @@ public class ReportController {
 
         reportRepository.save(report);
 
-        rttr.addFlashAttribute("success", "신고가 접수되었습니다. 검토 후 처리하겠습니다.");
+        // ✅ 신고 저장 후 누적 횟수 확인
+        Long reportCount = reportRepository.countReportsByBoardId(reportRequestDTO.getBoardId());
+
+        if (reportCount >= 3) {
+            boardRepository.findById(reportRequestDTO.getBoardId()).ifPresent(board -> {
+                board.blindPost("신고 누적");
+                boardRepository.save(board);
+            });
+            rttr.addFlashAttribute("success", "신고가 접수되었습니다. 신고 누적으로 인해 게시글이 블라인드 처리되었습니다.");
+            System.out.println("게시글 ID " + reportRequestDTO.getBoardId() + "이(가) 블라인드 처리되었습니다. (신고 " + reportCount + "회)");
+        } else {
+            rttr.addFlashAttribute("success", "신고가 접수되었습니다. 검토 후 처리하겠습니다.");
+        }
         return "redirect:/board/list";
     }
 
@@ -72,6 +86,13 @@ public class ReportController {
     }
 
     // 신고 상태 업데이트
+    /**
+     * 관리자용으로 신고 상태를 업데이트하는 POST 요청을 처리합니다.
+     * @param reportId 업데이트할 신고의 ID
+     * @param status 변경할 신고 상태 (PENDING, REVIEWED, RESOLVED)
+     * @param rttr 리다이렉트 시 사용할 속성
+     * @return 관리자 신고 목록 페이지로 리다이렉트
+     */
     @PostMapping("/admin/report/update-status")
     public String updateReportStatus(@RequestParam Long reportId,
                                      @RequestParam Report.ReportStatus status,

@@ -1,5 +1,7 @@
 package com.example.kmj.service;
 
+import com.example.kmj.repository.ReportRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
@@ -9,12 +11,27 @@ import java.util.List;
 import java.util.Comparator;
 
 @Service
+@RequiredArgsConstructor
 public class BoardService {
 
+    private final ReportRepository reportRepository;
     private List<String> badWords;
 
-    public BoardService() {
+    // @PostConstruct를 사용하여 초기화
+    @jakarta.annotation.PostConstruct
+    public void init() {
         loadBadWords();
+    }
+
+    // ✅ 게시글이 블라인드 처리되었는지 확인
+    public boolean isBlindedBoard(Long boardId) {
+        Long reportCount = reportRepository.countReportsByBoardId(boardId);
+        return reportCount >= 3;
+    }
+
+    // ✅ 게시글의 신고 횟수 조회
+    public Long getReportCount(Long boardId) {
+        return reportRepository.countReportsByBoardId(boardId);
     }
 
     // 비속어 필터링: 사용자용 (별표 처리)
@@ -66,6 +83,10 @@ public class BoardService {
     }
 
     // badwords.txt 파일에서 비속어 목록 로드
+    /**
+     * `badwords.txt` 파일에서 비속어 목록을 로드합니다.
+     * 파일 로드 실패 시 기본 비속어 목록을 사용합니다.
+     */
     private void loadBadWords() {
         badWords = new ArrayList<>();
 

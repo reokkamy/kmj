@@ -33,6 +33,10 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
     List<Report> findAllOrderByReportDateDesc();
 
     // 처리되지 않은 신고 목록 조회
+    /**
+     * 처리되지 않은 (PENDING) 상태의 신고 목록을 오래된 신고 날짜 순으로 조회합니다.
+     * @return 처리 대기 중인 신고 목록
+     */
     @Query("SELECT r FROM Report r WHERE r.status = 'PENDING' ORDER BY r.reportDate ASC")
     List<Report> findPendingReports();
 }
