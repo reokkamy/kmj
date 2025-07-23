@@ -22,3 +22,15 @@ INSERT INTO reports (board_id, reporter, reason, status) VALUES
 (1, 'user1', '스팸 게시글입니다', 'PENDING'),
 (2, 'user2', '부적절한 내용이 포함되어 있습니다', 'REVIEWED'),
 (1, 'user3', '광고성 게시글로 보입니다', 'RESOLVED');
+
+
+-- Board 테이블에 블라인드 처리 관련 컬럼 추가
+ALTER TABLE board
+ADD COLUMN is_blinded BOOLEAN DEFAULT FALSE,
+ADD COLUMN blind_reason VARCHAR(255),
+ADD COLUMN blind_date TIMESTAMP,
+ADD COLUMN original_content TEXT,
+ADD COLUMN original_title VARCHAR(255);
+
+-- 기존 데이터에 대한 기본값 설정
+UPDATE board SET is_blinded = FALSE WHERE is_blinded IS NULL;
